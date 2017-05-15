@@ -41,6 +41,11 @@ export class Rustup {
     private components: string[];
 
     /**
+     * Toolchains received by invoking `rustup toolchain list`
+     */
+    private toolchains: string[];
+
+    /**
      * Checks if Rustup manages a specified Rust's installation root
      * @param rustcSysRoot a path to Rust's installation root to check
      * @returns true if Rustup manages it otherwire false
@@ -68,6 +73,7 @@ export class Rustup {
         await rustup.updatePathToRustSourceCodePath();
         await rustup.updateComponents();
         await rustup.updatePathToRlsExecutable();
+        await rustup.updateToolchains();
         return rustup;
     }
 
@@ -90,6 +96,20 @@ export class Rustup {
      */
     public getPathToRlsExecutable(): string | undefined {
         return this.pathToRlsExecutable;
+    }
+
+    /**
+     * Returns the toolchains received from Rustup
+     */
+    public getToolchains(): string[] {
+        return this.toolchains;
+    }
+
+    /**
+     * Returns the first toolchain starts with "nightly"
+     */
+    public getNightlyToolchain(): string | undefined {
+        return this.toolchains.find(t => t.startsWith('nightly'));
     }
 
     /**
@@ -191,6 +211,27 @@ export class Rustup {
     }
 
     /**
+     * Invokes `rustup toolchain list`, parses the output and updates the inner field
+     */
+    public async updateToolchains(): Promise<void> {
+        const logger = this.logger.createChildLogger('updateToolchains: ');
+        logger.debug('enter');
+        this.toolchains = [];
+        const result: string | undefined = await this.invokeRustup(['toolchain', 'list']);
+        if (!result) {
+            logger.error('Rustup invocation failed');
+            return;
+        }
+        const toolchains = result.split('\n').filter(line => line !== '');
+        if (toolchains.length === 0) {
+            logger.error('Rustup reported that no toolchains are installed');
+            return;
+        }
+        this.toolchains = toolchains;
+        logger.debug(`this.toolchains=${JSON.stringify(this.toolchains)}`);
+    }
+
+    /**
      * Requests Rustup give a list of components, parses it, checks if RLS is present in the list and returns if it is
      * @returns true if RLS can be installed otherwise false
      */
@@ -272,6 +313,8 @@ export class Rustup {
         this.pathToRlsExecutable = pathToRlsExecutable;
 
         this.components = [];
+
+        this.toolchains = [];
     }
 
     /**

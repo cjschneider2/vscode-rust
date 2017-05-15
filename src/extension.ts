@@ -89,6 +89,11 @@ async function handleMissingRls(logger: RootLogger, configuration: Configuration
         }
         return;
     }
+    const nightlyToolchain: string | undefined = rustup.getNightlyToolchain();
+    if (!nightlyToolchain) {
+        functionLogger.debug('The nightly toolchain is not installed');
+
+    }
     const rlsInstallDecision: RlsInstallDecision = await askPermissionToInstallRls(logger);
     functionLogger.debug(`rlsInstallDecision=${rlsInstallDecision}`);
     switch (rlsInstallDecision) {
